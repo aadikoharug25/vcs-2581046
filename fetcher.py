@@ -38,17 +38,35 @@ def clean_html(html: str) -> str:
     return " ".join(text.split())
 
 
+
 def fetch_article_text(url: str, timeout: int = 10) -> Optional[str]:
-    """Download the article page and return cleaned text.
-    Returns ``None`` on network errors or if the page cannot be parsed.
-    """
+    """Download the article page and return cleaned text."""
     try:
-        resp = requests.get(url, timeout=timeout, headers={"User-Agent": "NewsLensFetcher/1.0"})
+        resp = requests.get(
+            url,
+            timeout=timeout,
+            headers={"User-Agent": "NewsLensFetcher/1.0"}
+        )
         resp.raise_for_status()
-        return clean_html(resp.text)
-    except Exception as e:
+
+        resp.encoding = resp.apparent_encoding or resp.encoding
+
+        article_text = clean_html(resp.text)
+
+        if not article_text:
+            logging.warning(f"No readable article text found: {url}")
+            return None
+
+        return article_text
+
+    except requests.RequestException as e:
         logging.warning(f"Failed to fetch article {url}: {e}")
         return None
+
+    except Exception as e:
+        logging.warning(f"Failed to process article {url}: {e}")
+        return None
+
 
 # ---------------------------------------------------------------------------
 # Core fetcher logic
